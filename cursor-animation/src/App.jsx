@@ -1,35 +1,51 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// https://sketchfab.com/3d-models/heart-4cfcb7d37a8e491282ab94c35c78806e
 
-function App() {
-  const [count, setCount] = useState(0)
+import React, { useRef, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { useGLTF, OrbitControls } from '@react-three/drei';
+import * as THREE from 'three'
+
+function Heart() {
+  const { scene } = useGLTF('./heart.glb');
+  const heartRef = useRef();
+  const [hovered, setHover] = useState(false);
+  const [scale, setScale] = useState(.05);
+
+  useFrame((state) => {
+    const elapsedTime = state.clock.getElapsedTime();
+    const pulseScale = Math.sin(elapsedTime * 5) * 0.005 + scale;
+
+    if (hovered) {
+      heartRef.current.scale.lerp(new THREE.Vector3(pulseScale, pulseScale, pulseScale), 0.1);
+    } else {
+      heartRef.current.scale.lerp(new THREE.Vector3(scale, scale, scale), 0.1);
+    }
+  })
+
+  const handlePointerOver = () => {
+    setHover(true);
+  };
+
+  const handlePointerOut = () => {
+    setHover(false);
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <primitive
+      object={scene}
+      ref={heartRef}
+      scale={scale}
+      onPointerOver={handlePointerOver}
+      onPointerOut={handlePointerOut}
+    />
+  );
 }
 
-export default App
+export default function App() {
+  return <>
+      <OrbitControls />
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[0, 10, 5]} intensity={1.0} />
+      <Heart/>
+      </>
+}
