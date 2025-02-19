@@ -1,44 +1,47 @@
-import React, { useEffect, useRef } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
+import React, { useRef, useEffect, useState } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import gsap from "gsap";
 
-function Model({ path, sectionIndex }) {
+function Model({ path, sectionIndex, scrollOffset }) {
     const modelRef = useRef();
     const { scene } = useGLTF(path);
 
-    const initialYPosition = -sectionIndex * 4.5; 
+    const initialYPosition = -sectionIndex * 4.5;
 
-    useEffect(() => {
+    useFrame(() => {
         if (modelRef.current) {
-            gsap.set(modelRef.current.position, { y: initialYPosition });
+            modelRef.current.position.y = initialYPosition - scrollOffset;
         }
-    }, [initialYPosition]);
+    });
 
-    return <primitive ref={modelRef} object={scene} scale={0.3} position={[0, initialYPosition, 0]} />;
+    return <primitive ref={modelRef} object={scene} scale={0.3} />;
 }
 
-function CameraController() {
-    const { camera } = useThree(); 
+function CameraController({ scrollOffset }) {
+    const { camera } = useThree();
 
-    useEffect(() => {
-        const updateScroll = () => {
-            const scrollY = window.scrollY;
-            gsap.to(camera.position, {
-                duration: 1.2,
-                ease: "power2.inOut",
-                y: -scrollY / window.innerHeight * 4, 
-            });
-        };
+    useFrame(() => {
+        camera.position.y = -scrollOffset;
+    });
 
-        window.addEventListener("scroll", updateScroll);
-        return () => window.removeEventListener("scroll", updateScroll);
-    }, [camera]);
-
-    return null; 
+    return null;
 }
 
 export default function App() {
+    const [scrollOffset, setScrollOffset] = useState(0);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrollY = window.scrollY;
+            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollFraction = scrollY / maxScroll;
+            setScrollOffset(scrollFraction * maxScroll);
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
     return (
         <>
             <Canvas
@@ -51,16 +54,16 @@ export default function App() {
                     background: "transparent",
                     pointerEvents: "auto",
                 }}
-                camera={{ fov: 45, position: [0, 0, 8] }} 
+                camera={{ fov: 45, position: [0, 0, 8] }}
             >
                 <ambientLight intensity={3} />
                 <directionalLight position={[5, 5, 5]} intensity={20} />
 
-                <CameraController /> 
+                <CameraController scrollOffset={scrollOffset} />
 
-                <Model path="./model1.glb" sectionIndex={0} />
-                <Model path="./model2.glb" sectionIndex={1} />
-                <Model path="./model3.glb" sectionIndex={2} />
+                <Model path="./model1.glb" sectionIndex={0} scrollOffset={scrollOffset} />
+                <Model path="./model2.glb" sectionIndex={1} scrollOffset={scrollOffset} />
+                <Model path="./model3.glb" sectionIndex={2} scrollOffset={scrollOffset} />
             </Canvas>
         </>
     );
